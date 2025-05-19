@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>User Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .sidebar {
+            height: 100vh;
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+        }
+        .nav-link.active {
+            background-color: #0d6efd;
+            color: #fff !important;
+        }
+        .logout-btn {
+            color: #9e9e9e;
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .logout-btn:hover {
+            color: #dcdcdc;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+<!-- Верхняя панель -->
+<nav class="navbar navbar-dark bg-dark">
+    <div class="container-fluid justify-content-between">
+        <span class="navbar-brand mb-0 h1">
+            <span th:text="${user.email}"></span> with roles:
+            <span th:each="role, stat : ${user.roles}">
+                <span th:text="${role.name.replace('ROLE_', '')}"></span>
+                <span th:if="${!stat.last}">, </span>
+            </span>
+        </span>
+        <form th:action="@{/logout}" method="post" class="my-auto">
+            <button type="submit" class="logout-btn">Logout</button>
+        </form>
+    </div>
+</nav>
+
+<!-- Основной макет -->
+<div class="container-fluid">
+    <div class="row">
+
+        <!-- Левое меню -->
+        <div class="col-md-2 sidebar p-3">
+            <ul class="nav flex-column" id="sidebar-nav">
+                <!-- Вкладка User (всегда отображается) -->
+                <li class="nav-item">
+                    <a class="nav-link active" href="#">User</a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Контент -->
+        <div class="col-md-10 p-4">
+            <h2 class="mb-4">User information-page</h2>
+            <div class="card border-0">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0">About user</h5>
+                </div>
+                <div class="card-body">
+                <table class="table table-bordered table-hover">
+                        <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Age</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td th:text="${user.id}"></td>
+                            <td th:text="${user.age}"></td>
+                            <td th:text="${user.email}"></td>
+                            <td>
+                                    <span th:each="role, stat : ${user.roles}">
+                                        <span th:text="${role.name.replace('ROLE_', '')}"></span>
+                                        <span th:if="${!stat.last}">, </span>
+                                    </span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Если перешли из /admin — добавим вкладку Admin
+    if (sessionStorage.getItem('cameFromAdmin') === 'true') {
+        const nav = document.getElementById('sidebar-nav');
+        const li = document.createElement('li');
+        li.classList.add('nav-item');
+        li.innerHTML = '<a class="nav-link" href="/admin">Admin</a>';
+        nav.prepend(li); // Вставляем в начало
+    }
+    window.addEventListener('beforeunload', () => {
+        sessionStorage.removeItem('cameFromAdmin');
+    });
+</script>
+</body>
+</html>
