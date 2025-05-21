@@ -109,21 +109,7 @@
             <th>Delete</th>
           </tr>
           </thead>
-          <tbody>
-          <tr th:each="user : ${users}">
-            <td th:text="${user.id}"></td>
-            <td th:text="${user.age}"></td>
-            <td th:text="${user.email}"></td>
-            <td>
-              <span th:each="role : ${user.roles}" class="role-badge" th:text="${role.name.replace('ROLE_', '')}"></span>
-            </td>
-            <td>
-              <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editModal" th:attr="data-bs-userid=${user.id}">Edit</button>
-            </td>
-            <td>
-              <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" th:attr="data-bs-userid=${user.id}">Delete</button>
-            </td>
-          </tr>
+          <tbody id="users-body"> <!-- Данные будут здесь -->
           </tbody>
         </table>
       </div>
@@ -311,6 +297,51 @@
       userLink.classList.add('active');
     }
   }
+
+  // Функция для загрузки пользователей
+  async function fetchUsers() {
+    try {
+      const response = await fetch('/api/admin', {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' // Для передачи куки (если используется сессия)
+      });
+      const users = await response.json();
+      renderUsers(users);
+    } catch (error) {
+      console.error('Ошибка:', error);
+    }
+  }
+
+  // Функция для отрисовки пользователей
+  function renderUsers(users) {
+    const tbody = document.getElementById('users-body');
+    tbody.innerHTML = ''; // Очищаем таблицу
+
+    users.forEach(user => {
+      const row = `
+      <tr>
+        <td>${user.id}</td>
+        <td>${user.age}</td>
+        <td>${user.email}</td>
+        <td>
+          ${user.roles.map(role => `<span class="role-badge">${role.name.replace('ROLE_', '')}</span>`).join('')}
+        </td>
+        <td>
+          <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editModal" data-bs-userid="${user.id}">Edit</button>
+        </td>
+        <td>
+          <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-bs-userid="${user.id}">Delete</button>
+        </td>
+      </tr>
+    `;
+      tbody.insertAdjacentHTML('beforeend', row);
+    });
+  }
+
+  // Загружаем данные при загрузке страницы
+  document.addEventListener('DOMContentLoaded', fetchUsers);
 </script>
 </body>
 </html>
