@@ -12,6 +12,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotEmpty;
 import java.util.Collection;
@@ -105,6 +106,7 @@ public class User implements UserDetails {
     }
 
     @Override
+    @Transient
     public Collection<Role> getAuthorities() {
         return roles;
     }

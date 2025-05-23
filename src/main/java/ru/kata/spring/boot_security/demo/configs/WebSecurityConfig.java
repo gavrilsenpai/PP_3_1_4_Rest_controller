@@ -28,12 +28,15 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests()
-                .antMatchers("/api/admin/**").hasRole("ADMIN") // Только ADMIN
-                .antMatchers("/api/user/**").hasAnyRole("USER", "ADMIN") // USER или ADMIN
+                .antMatchers("/api/admin/**").hasRole("ADMIN")
+                .antMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+                .antMatchers("/api/roles/**").hasRole("ADMIN")
                 .antMatchers("/admin/**").hasRole("ADMIN")
                 .antMatchers("/user").hasAnyRole("USER", "ADMIN")
                 .antMatchers("/", "/login").permitAll()
                 .anyRequest().authenticated()
+                .and()
+                .csrf()
                 .and()
                 .formLogin()
                 .loginPage("/login")
@@ -42,10 +45,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .permitAll()
                 .and()
                 .httpBasic();
-//                .logout()
-//                .logoutUrl("/logout")
-//                .logoutSuccessUrl("/login")
-//                .permitAll();
     }
 
     @Override

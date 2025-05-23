@@ -39,8 +39,12 @@ public class AdminController {
 
     @PostMapping("/create")
     public String createUser(@ModelAttribute("user") User user,
-                             @RequestParam("roleIds") List<Long> roleIds) {
-        user.setRoles(new HashSet<>(roleService.findByIds(roleIds)));
+                             @RequestParam(value = "roleIds", required = false) List<Long> roleIds) {
+        if (roleIds == null) {
+            user.setRoles(new HashSet<>()); // Или установите дефолтную роль
+        } else {
+            user.setRoles(new HashSet<>(roleService.findByIds(roleIds)));
+        }
         userService.save(user);
         return "redirect:/admin";
     }

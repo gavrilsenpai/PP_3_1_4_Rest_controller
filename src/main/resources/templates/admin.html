@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
+  <meta name="_csrf" th:content="${_csrf.token}"/>
+  <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
   <title>Admin Panel</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -120,7 +122,7 @@
           <h5 class="mb-0 text-center">Add new user</h5>
         </div>
         <div class="card-body">
-          <form th:action="@{/admin/create}" method="post">
+          <form id="createUserForm">
             <div class="mb-3 d-flex flex-column align-items-center">
               <label for="age" class="form-label fw-bold text-center" style="width: 400px;">Age</label>
               <input type="number" name="age" id="age" class="form-control" style="width: 400px;" placeholder="Age" required>
@@ -135,8 +137,8 @@
             </div>
             <div class="mb-3 d-flex flex-column align-items-center">
               <label for="roles" class="form-label fw-bold text-center" style="width: 400px;">Roles</label>
-              <select name="roleIds" id="roles" class="form-select" style="width: 400px;">
-                <option th:each="role : ${allRoles}" th:value="${role.id}" th:text="${role.name.replace('ROLE_', '')}"></option>
+              <select name="roleIds" id="roles" class="form-select" style="width: 400px;" multiple>
+<!--                <option th:each="role : ${allRoles}" th:value="${role.id}" th:text="${role.name.replace('ROLE_', '')}"></option>-->
               </select>
             </div>
             <div class="mb-3 d-flex justify-content-center">
@@ -179,7 +181,7 @@
           <div class="mb-3 d-flex flex-column align-items-center">
             <label for="editRoles" class="form-label fw-bold text-center" style="width: 300px;">Roles</label>
             <select name="roleIds" id="editRoles" multiple class="form-select" style="max-width: 300px;">
-              <option th:each="role : ${allRoles}" th:value="${role.id}" th:text="${role.name.replace('ROLE_', '')}"></option>
+<!--              <option th:each="role : ${allRoles}" th:value="${role.id}" th:text="${role.name.replace('ROLE_', '')}"></option>-->
             </select>
           </div>
         </div>
@@ -260,11 +262,11 @@
       document.querySelector('#editModal input[name="email"]').value = row.cells[2].textContent.trim();
       document.querySelector('#editModal input[name="age"]').value = row.cells[1].textContent.trim();
 
-      const roles = Array.from(row.cells[3].querySelectorAll('.role-badge'))
-              .map(badge => badge.textContent.trim());
+      const userRoles = Array.from(row.cells[3].querySelectorAll('.role-badge'))
+              .map(badge => badge.getAttribute('data-role-id')); // Добавьте data-role-id в рендеринг
 
       Array.from(document.querySelectorAll('#editModal select[name="roleIds"] option')).forEach(option => {
-        option.selected = roles.includes(option.textContent.trim());
+        option.selected = userRoles.includes(option.value);
       });
     });
 
@@ -298,6 +300,8 @@
     }
   }
 
+  ///////////////////////////////////////////////////////////////////////
+
   // Функция для загрузки пользователей
   async function fetchUsers() {
     try {
@@ -314,20 +318,61 @@
     }
   }
 
+  // Загрузка ролей при загрузке страницы
+  let allRoles = []; // Глобальная переменная для хранения ролей
+
+  async function loadRoles() {
+    try {
+      const response = await fetch('/api/roles', {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+      allRoles = await response.json();
+      populateRoleSelects();
+    } catch (error) {
+      console.error('Ошибка загрузки ролей:', error);
+    }
+  }
+
+  // Заполнение select-элементов ролями
+  function populateRoleSelects() {
+    const roleSelect = document.getElementById('roles');
+    const editRoleSelect = document.getElementById('editRoles');
+
+    // Очистка старых опций
+    roleSelect.innerHTML = '';
+    editRoleSelect.innerHTML = '';
+
+    allRoles.forEach(role => {
+      const option = document.createElement('option');
+      option.value = role.id;
+      option.textContent = role.name.replace('ROLE_', '');
+
+      roleSelect.appendChild(option.cloneNode(true));
+      editRoleSelect.appendChild(option.cloneNode(true));
+    });
+  }
+
   // Функция для отрисовки пользователей
   function renderUsers(users) {
     const tbody = document.getElementById('users-body');
-    tbody.innerHTML = ''; // Очищаем таблицу
-
+    tbody.innerHTML = '';
     users.forEach(user => {
+      // Проверяем наличие ролей
+      const rolesHtml = user.roles?.length
+              ? user.roles.map(role =>
+                      `<span class="role-badge" data-role-id="${role.id}">${role.name.replace('ROLE_', '')}</span>`
+              ).join('')
+              : '<span class="text-muted">No roles</span>';
+
       const row = `
       <tr>
         <td>${user.id}</td>
         <td>${user.age}</td>
         <td>${user.email}</td>
-        <td>
-          ${user.roles.map(role => `<span class="role-badge">${role.name.replace('ROLE_', '')}</span>`).join('')}
-        </td>
+        <td>${rolesHtml}</td>
         <td>
           <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editModal" data-bs-userid="${user.id}">Edit</button>
         </td>
@@ -340,11 +385,56 @@
     });
   }
 
-  // Загружаем данные при загрузке страницы
-  document.addEventListener('DOMContentLoaded', fetchUsers);
+  // Инициализация при загрузке страницы
+  document.addEventListener('DOMContentLoaded', () => {
+    loadRoles();
+    fetchUsers(); // Ваша существующая функция загрузки пользователей
+  });
+
+  // Создание нового пользователя
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('createUserForm');
+    const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = {
+        age: document.getElementById('age').value,
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+        roleIds: Array.from(document.getElementById('roles').selectedOptions)
+                .map(option => parseInt(option.value)) // Преобразуем в числа
+      };
+
+      try {
+        const response = await fetch('/api/admin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            [csrfHeader]: csrfToken
+          },
+          body: JSON.stringify(formData),
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          fetchUsers(); // Обновляем таблицу
+          document.getElementById('createUserForm').reset(); // Очищаем форму
+          // alert('Пользователь успешно добавлен!'); // Убрали эту строку
+        }
+      } catch (error) {
+        console.error('Ошибка:', error);
+      }
+    });
+  });
 </script>
 </body>
 </html>
+
+//////////////////ПРОБЛЕМА В БД ГДЕ ТО СОЗДАЕТСЯ role_ids НУЖНО УДАЛИТЬ ЭТОТ СТОЛБ/////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
