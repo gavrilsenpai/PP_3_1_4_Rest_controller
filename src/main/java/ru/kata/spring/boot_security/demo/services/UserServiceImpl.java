@@ -62,7 +62,6 @@ public class UserServiceImpl implements UserService {
     public void save(User user) {
 
         if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            // Установите дефолтную роль (например, ROLE_USER)
             Role defaultRole = roleService.findByName("ROLE_USER");
             user.setRoles(Set.of(defaultRole));
         }

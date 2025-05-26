@@ -10,8 +10,12 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import ru.kata.spring.boot_security.demo.dto.UserDTO;
+import ru.kata.spring.boot_security.demo.services.RoleService;
 import ru.kata.spring.boot_security.demo.services.UserService;
 import ru.kata.spring.boot_security.demo.models.User;
+
+import java.util.HashSet;
 import java.util.List;
 
 @RestController
@@ -19,9 +23,11 @@ import java.util.List;
 public class AdminRestController {
 
     private final UserService userService;
+    private final RoleService roleService;
 
-    public AdminRestController(UserService userService) {
+    public AdminRestController(UserService userService, RoleService roleService) {
         this.userService = userService;
+        this.roleService = roleService;
     }
 
     @GetMapping
@@ -41,9 +47,19 @@ public class AdminRestController {
     }
 
     @PutMapping
-    public ResponseEntity<User> updateUser(@RequestBody User user) {
+    public ResponseEntity<User> updateUser(@RequestBody UserDTO dto) {
+        User user = new User();
+        user.setId(dto.getId());
+        user.setEmail(dto.getEmail());
+        user.setAge(dto.getAge());
+        user.setPassword(dto.getPassword());
+
+        if (dto.getRoleIds() != null) {
+            user.setRoles(new HashSet<>(roleService.findByIds(dto.getRoleIds())));
+        }
+
         userService.update(user);
-        return new ResponseEntity<>(user, HttpStatus.OK);
+        return ResponseEntity.ok(user);
     }
 
     @DeleteMapping("/{id}")
