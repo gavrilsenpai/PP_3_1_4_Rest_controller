@@ -1,6 +1,10 @@
 package ru.kata.spring.boot_security.demo.dto;
 
+import ru.kata.spring.boot_security.demo.models.Role;
+import ru.kata.spring.boot_security.demo.models.User;
+
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class UserDTO {
     private Long id;
@@ -8,6 +12,29 @@ public class UserDTO {
     private String password;
     private Integer age;
     private List<Long> roleIds;
+    private List<String> roleNames;
+
+    public UserDTO() {
+    }
+
+    public UserDTO(User user) {
+        this.id = user.getId();
+        this.email = user.getEmail();
+        this.password = null;
+        this.age = user.getAge();
+
+        if (user.getRoles() != null) {
+            this.roleIds = user.getRoles().stream()
+                    .map(Role::getId)
+                    .collect(Collectors.toList());
+            this.roleNames = user.getRoles().stream()
+                    .map(role -> role.getName().replace("ROLE_", ""))
+                    .collect(Collectors.toList());
+        } else {
+            this.roleIds = List.of();
+            this.roleNames = List.of();
+        }
+    }
 
     public Long getId() {
         return id;
@@ -42,5 +69,12 @@ public class UserDTO {
     }
     public void setRoleIds(List<Long> roleIds) {
         this.roleIds = roleIds;
+    }
+
+    public List<String> getRoleNames() {
+        return roleNames;
+    }
+    public void setRoleNames(List<String> roleNames) {
+        this.roleNames = roleNames;
     }
 }

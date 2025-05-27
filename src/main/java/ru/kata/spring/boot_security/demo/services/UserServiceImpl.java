@@ -4,6 +4,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import ru.kata.spring.boot_security.demo.models.Role;
 import ru.kata.spring.boot_security.demo.models.User;
+import ru.kata.spring.boot_security.demo.repositories.RoleRepository;
 import ru.kata.spring.boot_security.demo.repositories.UserRepository;
 
 import javax.persistence.EntityNotFoundException;
@@ -17,11 +18,14 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleService roleService;
+    private final RoleRepository roleRepository;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, RoleService roleService) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                           RoleService roleService, RoleRepository roleRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.roleService = roleService;
+        this.roleRepository = roleRepository;
     }
 
     @Override
@@ -48,8 +52,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public User getById(Long id) {
-        return userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Пользователь не найден") );
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        user.getRoles().size();
+        return user;
     }
 
     @Override
@@ -71,7 +79,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public User findByEmail(String email) {
         return userRepository.findByEmail(email).orElseThrow(()-> new EntityNotFoundException("email не найден"));
+    }
+
+    @Override
+    public List<Role> findByIds(List<Long> ids) {
+        return roleRepository.findAllById(ids);
     }
 }

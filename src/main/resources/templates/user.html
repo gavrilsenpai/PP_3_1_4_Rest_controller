@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html>
 <head>
     <title>User Page</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -31,19 +31,16 @@
     </style>
 </head>
 <body>
+
 <!-- Верхняя панель -->
 <nav class="navbar navbar-dark bg-dark">
     <div class="container-fluid justify-content-between">
         <span class="navbar-brand mb-0 h1">
-            <span th:text="${user.email}"></span> with roles:
-            <span th:each="role, stat : ${user.roles}">
-                <span th:text="${role.name.replace('ROLE_', '')}"></span>
-                <span th:if="${!stat.last}">, </span>
+            <span id="currentUserEmail"></span> with roles:
+            <span id="currentUserRoles"></span>
             </span>
         </span>
-        <form th:action="@{/logout}" method="post" class="my-auto">
-            <button type="submit" class="logout-btn">Logout</button>
-        </form>
+        <button class="logout-btn" onclick="handleLogout()">Logout</button>
     </div>
 </nav>
 
@@ -78,19 +75,7 @@
                             <th>Role</th>
                         </tr>
                         </thead>
-                        <tbody>
-                        <tr>
-                            <td th:text="${user.id}"></td>
-                            <td th:text="${user.age}"></td>
-                            <td th:text="${user.email}"></td>
-                            <td>
-                                    <span th:each="role, stat : ${user.roles}">
-                                        <span th:text="${role.name.replace('ROLE_', '')}"></span>
-                                        <span th:if="${!stat.last}">, </span>
-                                    </span>
-                            </td>
-                        </tr>
-                        </tbody>
+                    <tbody id="user-data"></tbody>
                     </table>
                 </div>
             </div>
@@ -100,16 +85,77 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Если перешли из /admin — добавим вкладку Admin
-    if (sessionStorage.getItem('cameFromAdmin') === 'true') {
-        const nav = document.getElementById('sidebar-nav');
-        const li = document.createElement('li');
-        li.classList.add('nav-item');
-        li.innerHTML = '<a class="nav-link" href="/admin">Admin</a>';
-        nav.prepend(li); // Вставляем в начало
+    let csrfToken = '';
+    let csrfHeader = '';
+
+    async function loadCsrfToken() {
+        try {
+            const response = await fetch('/csrf-token', { credentials: 'include' });
+            const data = await response.json();
+            csrfToken = data.token;
+            csrfHeader = data.headerName;
+        } catch (error) {
+            console.error('CSRF token load error:', error);
+        }
     }
+
     window.addEventListener('beforeunload', () => {
         sessionStorage.removeItem('cameFromAdmin');
+    });
+
+    // Загрузка данных пользователя
+    async function loadUserData() {
+        try {
+            const response = await fetch('/api/user', { credentials: 'include' });
+            const user = await response.json();
+
+            // Заполнение верхней панели
+            document.getElementById('currentUserEmail').textContent = user.email;
+            document.getElementById('currentUserRoles').textContent =
+                user.roleNames.join(', ');
+
+            // Заполнение таблицы
+            const tbody = document.getElementById('user-data');
+            tbody.innerHTML = `
+        <tr>
+          <td>${user.id}</td>
+          <td>${user.age}</td>
+          <td>${user.email}</td>
+          <td>${user.roleNames.join(', ')}</td>
+        </tr>
+      `;
+        } catch (error) {
+            console.error('Ошибка загрузки данных:', error);
+        }
+    }
+
+    // Выход
+    async function handleLogout() {
+        try {
+            await fetch('/logout', {
+                method: 'POST',
+                headers: {
+                    [csrfHeader]: csrfToken
+                },
+                credentials: 'include'
+            });
+            window.location.href = '/login';
+        } catch (error) {
+            console.error('Ошибка выхода:', error);
+        }
+    }
+
+    // Инициализация
+    document.addEventListener('DOMContentLoaded', () => {
+        loadCsrfToken();
+        loadUserData();
+        if (sessionStorage.getItem('cameFromAdmin') === 'true') {
+            const nav = document.getElementById('sidebar-nav');
+            const li = document.createElement('li');
+            li.classList.add('nav-item');
+            li.innerHTML = '<a class="nav-link" href="/admin">Admin</a>';
+            nav.prepend(li);
+        }
     });
 </script>
 </body>

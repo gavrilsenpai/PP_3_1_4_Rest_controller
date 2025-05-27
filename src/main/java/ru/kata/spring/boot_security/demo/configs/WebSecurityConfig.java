@@ -33,10 +33,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/roles/**").hasRole("ADMIN")
                 .antMatchers("/admin/**").hasRole("ADMIN")
                 .antMatchers("/user").hasAnyRole("USER", "ADMIN")
-                .antMatchers("/", "/login").permitAll()
+                .antMatchers("/", "/login", "/css/**", "/js/**").permitAll()
                 .anyRequest().authenticated()
-                .and()
-                .csrf()
                 .and()
                 .formLogin()
                 .loginPage("/login")
@@ -44,7 +42,12 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .successHandler(successUserHandler)
                 .permitAll()
                 .and()
-                .httpBasic();
+                .logout()
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/login")
+                .permitAll()
+                .and()
+                .csrf();
     }
 
     @Override

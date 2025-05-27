@@ -11,12 +11,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.kata.spring.boot_security.demo.dto.UserDTO;
+import ru.kata.spring.boot_security.demo.models.Role;
 import ru.kata.spring.boot_security.demo.services.RoleService;
 import ru.kata.spring.boot_security.demo.services.UserService;
 import ru.kata.spring.boot_security.demo.models.User;
 
+import javax.transaction.Transactional;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -31,19 +35,32 @@ public class AdminRestController {
     }
 
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
-        return new ResponseEntity<>(userService.findAllUsers(), HttpStatus.OK);
+    @Transactional
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
+        List<UserDTO> dtos = userService.findAllUsers().stream()
+                .map(UserDTO::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
-        return new ResponseEntity<>(userService.getById(id), HttpStatus.OK);
+    public ResponseEntity<UserDTO> getUserById(@PathVariable Long id) {
+        User user = userService.getById(id);
+        return ResponseEntity.ok(new UserDTO(user));
     }
 
     @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
+    public ResponseEntity<User> createUser(@RequestBody UserDTO dto) {
+        User user = new User();
+        user.setEmail(dto.getEmail());
+        user.setPassword(dto.getPassword());
+        user.setAge(dto.getAge());
+
+        Set<Role> roles = new HashSet<>(roleService.findByIds(dto.getRoleIds()));
+        user.setRoles(roles);
+
         userService.save(user);
-        return new ResponseEntity<>(user, HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
 
     @PutMapping
