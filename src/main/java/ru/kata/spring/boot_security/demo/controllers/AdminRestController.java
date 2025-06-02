@@ -35,7 +35,6 @@ public class AdminRestController {
     }
 
     @GetMapping
-    @Transactional
     public ResponseEntity<List<UserDTO>> getAllUsers() {
         List<UserDTO> dtos = userService.findAllUsers().stream()
                 .map(UserDTO::new)

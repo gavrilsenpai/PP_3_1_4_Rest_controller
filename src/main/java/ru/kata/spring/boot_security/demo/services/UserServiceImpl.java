@@ -30,6 +30,19 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    public void save(User user) {
+
+        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+            Role defaultRole = roleService.findByName("ROLE_USER");
+            user.setRoles(Set.of(defaultRole));
+        }
+
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
     public void update(User user) {
         User existingUser = userRepository.findById(user.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
@@ -52,7 +65,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional
     public User getById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
@@ -62,24 +74,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<User> findAllUsers() {
-        return userRepository.findAll();
+        return userRepository.findAllWithRoles();
     }
 
-    @Override
-    @Transactional
-    public void save(User user) {
 
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            Role defaultRole = roleService.findByName("ROLE_USER");
-            user.setRoles(Set.of(defaultRole));
-        }
-
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        userRepository.save(user);
-    }
 
     @Override
-    @Transactional
     public User findByEmail(String email) {
         return userRepository.findByEmail(email).orElseThrow(()-> new EntityNotFoundException("email не найден"));
     }
